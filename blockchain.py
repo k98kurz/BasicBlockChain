@@ -32,10 +32,11 @@ def meets_difficulty (signature, difficulty=1):
     return True
 
 '''
-    First 64 bytes: block signature
-    Second 32 bytes: signer's address/verification key
-    Third 32 bytes: previous block hash
-    Next 16 bytes: nonce for meeting difficulty
+    First 32 bytes: block hash
+    Second 64 bytes: block signature
+    Third 32 bytes: signer's address/verification key
+    Fourth 32 bytes: previous block hash
+    Fifth 16 bytes: nonce for meeting difficulty
     Remainder: body
 
     Parameters: signing_key SigningKey, previous_block bytes(64), body bytes(*), difficulty int(0<x<5)
@@ -57,10 +58,11 @@ def create_block (signing_key, previous_block, body, difficulty=1):
     return hash + signature.signature + signing_key.verify_key._key + previous_block['hash'] + nonce + body
 
 '''
-    First 64 bytes: block signature
-    Second 32 bytes: genesis address
-    Third 32 bytes: address/verification key of node
-    Fourth 16 bytes: nonce for meeting difficulty target.
+    First 32 bytes: block hash
+    Second 64 bytes: block signature
+    Third 32 bytes: genesis address
+    Fourth 32 bytes: address/verification key of node
+    Fifth 16 bytes: nonce for meeting difficulty target.
     Final 32 bytes (body): public key of node for ECDHE
 
     Parameters: genesis_key SigningKey, node_address bytes(64), public_key bytes(32), difficulty int(0<x<5)
