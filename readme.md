@@ -32,7 +32,16 @@ devices. If necessary, add timestamps to the body or fork the library.
 # Primitives
 
 This uses the PyNaCL library for Ed25519 signatures and sha256 hashes. Eventually,
-I will add some functions for ECDHE using Cruve25519 for messaging between nodes.
+I will add some functions for ECDHE using Curve25519 for messaging between nodes,
+hence the inclusion of Curve25519 public keys in genesis blocks.
+
+There are two reasons for using sha256 hashes instead of the sha512 signatures:
+1. When a block references another block on another block chain, it will be a total
+of 64 bytes: 32 for the address and 32 for the block hash. This saves some bandwidth
+in low-bandwidth networks for embedded devices, e.g. LoRa.
+2. It is easier on human eyes to use 256 bit hashes, and this scheme allows a
+theoretical maximum of 2^(256-difficulty) possible hashes per block chain/node,
+which is sufficient for any task.
 
 
 # Setup / Usage
