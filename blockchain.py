@@ -52,7 +52,7 @@ def create_block (signing_key, previous_block, body, difficulty=1):
         nonce = nacl.utils.random(16)
         signature = signing_key.sign(previous_block['hash'] + nonce + body)
 
-    hash = sha256(signature, encoder=RawEncoder)
+    hash = sha256(signature.signature, encoder=RawEncoder)
 
     # return the block
     return hash + signature.signature + signing_key.verify_key._key + previous_block['hash'] + nonce + body
@@ -77,7 +77,7 @@ def create_genesis_block (genesis_key, node_address, public_key, difficulty=1):
         nonce = nacl.utils.random(16)
         signature = genesis_key.sign(node_address + nonce + public_key)
 
-    hash = sha256(signature, encoder=RawEncoder)
+    hash = sha256(signature.signature, encoder=RawEncoder)
 
     # return the genesis block
     return hash + signature.signature + genesis_key.verify_key._key + node_address + nonce + public_key
