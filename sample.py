@@ -1,7 +1,10 @@
 import blockchain as bc
 from nacl.public import PrivateKey
 from nacl.signing import SigningKey, VerifyKey
+from nacl.hash import sha256
+from nacl.encoding import RawEncoder
 import os.path
+from binascii import hexlify
 
 '''
     Copyright (c) 2019 Jonathan Voss
@@ -61,9 +64,11 @@ else:
     print('Node 2 genesis block failed verification.')
 
 
-# add a block to each
-node1['blockchain'].append(bc.create_block(node1['signing_key'], node1['blockchain'][0], b'Hail Julius Caesar or something.'))
-node2['blockchain'].append(bc.create_block(node2['signing_key'], node2['blockchain'][0], b'Knives are cool tools of Roman politics.'))
+# add a few blocks to each
+node1['blockchain'].append(bc.create_block(node1['signing_key'], node1['blockchain'][-1], b'Hail Julius Caesar or something.'))
+node2['blockchain'].append(bc.create_block(node2['signing_key'], node2['blockchain'][-1], b'Knives are cool tools of Roman politics.'))
+node1['blockchain'].append(bc.create_block(node1['signing_key'], node1['blockchain'][-1], b'Traitors should be fed to the Teutons!'))
+node2['blockchain'].append(bc.create_block(node2['signing_key'], node2['blockchain'][-1], b'Caesar was the real traitor!'))
 
 # verify blockchains
 if bc.verify_chain(node1['blockchain'], genesis['address']):
@@ -100,3 +105,25 @@ if bc.verify_chain(blockchain, genesis['address']):
     print('Hostile takeover of node1 chain by node2 not detected.')
 else:
     print('Node2 gtfo of node1\'s blockchain')
+
+
+# print out the contents of a block chain
+print('\nnode1 block chain:')
+print('0 (genesis): {')
+print('\thash: ', hexlify(node1['blockchain'][0]['hash']))
+print('\tsignature: ', hexlify(node1['blockchain'][0]['signature']))
+print('\taddress: ', hexlify(node1['blockchain'][0]['address']))
+print('\tnode_address: ', hexlify(node1['blockchain'][0]['node_address']))
+print('\tnonce: ', hexlify(node1['blockchain'][0]['nonce']))
+print('\tpublic_key: ', hexlify(node1['blockchain'][0]['public_key']))
+print('}')
+
+for i in range(1, len(node1['blockchain'])):
+    print(i, ': {')
+    print('\thash: ', hexlify(node1['blockchain'][i]['hash']))
+    print('\tsignature: ', hexlify(node1['blockchain'][i]['signature']))
+    print('\taddress: ', hexlify(node1['blockchain'][i]['address']))
+    print('\tprevious_block_hash: ', hexlify(node1['blockchain'][i]['previous_block']))
+    print('\tnonce: ', hexlify(node1['blockchain'][i]['nonce']))
+    print('\tbody: ', node1['blockchain'][i]['body'])
+    print('}')
