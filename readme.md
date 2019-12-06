@@ -95,7 +95,17 @@ Parameters:
 - node_address: `_key` element from `nacl.signing.VerifyKey`, e.g. `node['verify_key']._key`
 - public_key: `_public_key` element from `nacl.public.PublicKey`, e.g. `node['public_key']._public_key`
 
-Returns a packed block (i.e. byte string).
+Returns a dict of this form:
+```
+{
+    hash: 32 bytes,
+    signature: 64 bytes,
+    address: 32 bytes (genesis_address),
+    node_address: 32 bytes,
+    nonce: 16 bytes,
+    public_key: 32 bytes
+}
+```
 
 ### create_block (signing_key, previous_block, body, difficulty=1)
 
@@ -104,7 +114,17 @@ Parameters:
 - previous_block: byte string or dict
 - body: byte string
 
-Returns a packed block (i.e. byte string).
+Returns dict of this form:
+```
+{
+    hash: 32 bytes,
+    signature: 64 bytes,
+    address: 32 bytes,
+    previous_block: 32 bytes,
+    nonce: 16 bytes,
+    body: variable length byte string
+}
+```
 
 ### verify_chain (blocks, genesis_address, difficulty=1)
 
@@ -147,17 +167,7 @@ Returns a boolean:
 Parameter:
 - block_bytes: byte string (at least 176 bytes long)
 
-Returns dict of this form:
-```
-{
-    hash: 32 bytes,
-    signature: 64 bytes,
-    address: 32 bytes,
-    previous_block: 32 bytes,
-    nonce: 16 bytes,
-    body: variable length byte string
-}
-```
+Returns dict of same form as `create_block`.
 
 Raises ValueError if len(block_bytes) < 176.
 
@@ -173,17 +183,7 @@ Returns a byte string: hash + signature + address + previous_block + nonce + bod
 Parameter:
 - block_bytes: byte string (208 bytes exactly)
 
-Returns a dict of this form:
-```
-{
-    hash: 32 bytes,
-    signature: 64 bytes,
-    address: 32 bytes (genesis_address),
-    node_address: 32 bytes,
-    nonce: 16 bytes,
-    public_key: 32 bytes
-}
-```
+Returns dict of same form as `create_genesis_block`.
 
 Raises ValueError if len(block_bytes) != 208.
 
@@ -218,6 +218,11 @@ Parameters:
 
 Loads a block chain from path/name. Returns a list of unpacked blocks (dicts).
 
+
+# To Do
+
+1. Add ECDHE functionality.
+2. Refactor into a class.
 
 # Copyright / ISC License
 
