@@ -221,8 +221,7 @@ Loads a block chain from path/name. Returns a list of unpacked blocks (dicts).
 
 # To Do
 
-1. Add ECDHE functionality.
-2. Refactor into a class.
+- Refactor into a class.
 
 # Copyright / ISC License
 
