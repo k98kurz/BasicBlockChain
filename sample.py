@@ -70,6 +70,10 @@ node2['blockchain'].append(bc.create_block(node2['signing_key'], node2['blockcha
 node1['blockchain'].append(bc.create_block(node1['signing_key'], node1['blockchain'][-1], b'Traitors should be fed to the Teutons!'))
 node2['blockchain'].append(bc.create_block(node2['signing_key'], node2['blockchain'][-1], b'Caesar was the real traitor!'))
 
+# make node1 chain a bit longer
+for i in range(3, 12):
+    node1['blockchain'].append(bc.create_block(node1['signing_key'], node1['blockchain'][-1], b'Test block' + bytes(str(i), 'utf-8')))
+
 # verify blockchains
 if bc.verify_chain(node1['blockchain'], genesis['address']):
     print('Node 1 block chain verified.')
