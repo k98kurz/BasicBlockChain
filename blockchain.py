@@ -32,14 +32,14 @@ def meets_difficulty (signature, difficulty=1):
     return True
 
 '''
-    First 32 bytes: block hash
-    Second 64 bytes: block signature
-    Third 32 bytes: signer's address/verification key
-    Fourth 32 bytes: previous block hash
-    Fifth 16 bytes: nonce for meeting difficulty
-    Remainder: body
+    Block hash: 32 bytes
+    Block signature: 64 bytes
+    Signer's address/verification key: 32 bytes
+    Previous block hash: 32 bytes
+    Nonce: 16 bytes
+    Body: variable length
 
-    Parameters: signing_key SigningKey, previous_block bytes(64), body bytes(*), difficulty int(0<x<5)
+    Parameters: signing_key SigningKey, previous_block dict, body bytes(*), difficulty int
 '''
 def create_block (signing_key, previous_block, body, difficulty=1):
     signing_key = SigningKey(signing_key) if type(signing_key) == type('s') or type(signing_key) == type(b's') else signing_key
@@ -55,15 +55,22 @@ def create_block (signing_key, previous_block, body, difficulty=1):
     hash = sha256(signature.signature, encoder=RawEncoder)
 
     # return the block
-    return hash + signature.signature + signing_key.verify_key._key + previous_block['hash'] + nonce + body
+    return {
+        'hash': hash,
+        'signature': signature.signature,
+        'address': signing_key.verify_key._key,
+        'previous_block': previous_block['hash'],
+        'nonce': nonce,
+        'body': body
+    }
 
 '''
-    First 32 bytes: block hash
-    Second 64 bytes: block signature
-    Third 32 bytes: genesis address
-    Fourth 32 bytes: address/verification key of node
-    Fifth 16 bytes: nonce for meeting difficulty target.
-    Final 32 bytes (body): public key of node for ECDHE
+    Block hash: 32 bytes
+    Block signature: 64 bytes
+    Genesis address: 32 bytes
+    Address/verification key of node: 32 bytes
+    Nonce: 16 bytes
+    Public key of node for ECDHE: 32 bytes
 
     Parameters: genesis_key SigningKey, node_address bytes(64), public_key bytes(32), difficulty int(0<x<5)
 '''
@@ -80,7 +87,14 @@ def create_genesis_block (genesis_key, node_address, public_key, difficulty=1):
     hash = sha256(signature.signature, encoder=RawEncoder)
 
     # return the genesis block
-    return hash + signature.signature + genesis_key.verify_key._key + node_address + nonce + public_key
+    return {
+        'hash': hash,
+        'signature': signature.signature,
+        'address': genesis_key.verify_key._key,
+        'node_address': node_address,
+        'nonce': nonce,
+        'public_key': public_key
+    }
 
 '''
     First 32 bytes: block hash
@@ -111,7 +125,7 @@ def unpack_block (block_bytes):
 '''
 def unpack_genesis_block (block_bytes):
     if len(block_bytes) != 208:
-        raise ValueError('Genesis block must be exactly 208 bytes. Supplied block was only ', len(block_bytes), ' bytes long.')
+        raise ValueError('Genesis block must be exactly 208 bytes. Supplied block was ', len(block_bytes), ' bytes long.')
     hash = block_bytes[0:32]
     signature = block_bytes[32:96]
     address = block_bytes[96:128]
@@ -201,18 +215,19 @@ def save_block_chain (path, name, chain):
         os.mkdir(os.path.join('./', dir))
 
     # save genesis block
-    data = pack_genesis_block(chain[0]) if type(chain[0]) == type([]) else chain[0]
+    data = pack_genesis_block(chain[0]) if type(chain[0]) == type({}) else chain[0]
     open(os.path.join(dir, '0_block'), 'wb').write(data)
 
     # save other blocks
     for i in range(1, len(chain)):
-        data = pack_block(chain[i]) if type(chain[i]) == type([]) else chain[i]
+        data = pack_block(chain[i]) if type(chain[i]) == type({}) else chain[i]
         open(os.path.join(dir, str(i) + '_block'), 'wb').write(data)
 
 def load_block_chain (path, name):
     dir = os.path.join(path, name + '_chain')
     chain = []
     files = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
+    files.sort()
     for i in range(0, len(files)):
         chain.append(open(os.path.join(dir, files[i]), 'rb').read())
     chain = unpack_chain(chain)
