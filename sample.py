@@ -131,3 +131,23 @@ for i in range(1, len(node1['blockchain'])):
     print('\tnonce: ', hexlify(node1['blockchain'][i]['nonce']))
     print('\tbody: ', node1['blockchain'][i]['body'])
     print('}')
+
+# ecdhe encrypt: node1
+message = b'Meet in the bathroom.'
+ciphertext = bc.encrypt(node1['private_key'], node2['public_key'], message)
+print('\nmessage: ', message)
+print('encrypted: ', hexlify(ciphertext))
+
+# ecdhe decrypt
+plaintext = bc.decrypt(node2['private_key'], node1['public_key'], ciphertext)
+print('decrypted: ', plaintext)
+
+# ephemeral ecdhe encrypt
+message = b'No way! It\'s a trap!'
+ciphertext = bc.encrypt_sealed(node1['public_key'], message)
+print('\nmessage: ', message)
+print('sealed ciphertext: ', hexlify(ciphertext))
+
+# ephemeral ecdhe decrypt
+plaintext = bc.decrypt_sealed(node1['private_key'], ciphertext)
+print('unsealed plaintext: ', plaintext)
