@@ -1,7 +1,7 @@
 from nacl.encoding import RawEncoder
 from nacl.hash import sha256
 from nacl.signing import SigningKey, VerifyKey
-from nacl.public import PrivateKey
+from nacl.public import PrivateKey, Box, SealedBox
 import nacl
 import os.path
 
@@ -208,6 +208,22 @@ def verify_chain (blocks, genesis_address, difficulty=1):
             return False
 
     return True
+
+def encrypt (private_key, public_key, plaintext):
+    box = Box(private_key, public_key)
+    return box.encrypt(plaintext)
+
+def decrypt (private_key, public_key, ciphertext):
+    box = Box(private_key, public_key)
+    return box.decrypt(ciphertext)
+
+def encrypt_sealed (public_key, plaintext):
+    box = SealedBox(public_key)
+    return box.encrypt(plaintext)
+
+def decrypt_sealed (private_key, ciphertext):
+    box = SealedBox(private_key)
+    return box.decrypt(ciphertext)
 
 def save_block_chain (path, name, chain):
     dir = os.path.join(path, name + '_chain')
