@@ -31,27 +31,41 @@ class SimpleSerializer():
 
     @staticmethod
     def find_block_hash (path, name, height):
-        # load index file
         dir = os.path.join(path, name + '_chain')
-        data = open(os.path.join(dir, 'index'), 'rb').read()
-        # trim trailing newline
-        data = data[:-1] if data[-1:] == b'\n' else data
 
-        # build index
-        index = {'0': 'genesis'}
-        listed = data.split(b'\n')
-        for i in range(0, len(listed)):
-            t = listed[i].split(b':')
-            index[t[0]] = t[1]
+        if height == 0:
+            # load genesis file
+            data = open(os.path.join(dir, 'genesis'), 'rb').read()
+            block = SimpleSerializer.unpack_genesis_block(data)
+            return block['hash']
 
-        # return the block hash
-        return index[bytes(str(height), 'utf-8')]
+        else:
+            # load index file
+            data = open(os.path.join(dir, 'index'), 'rb').read()
+            # trim trailing newline
+            data = data[:-1] if data[-1:] == b'\n' else data
+
+            # build index
+            index = {'0': 'genesis'}
+            listed = data.split(b'\n')
+            for i in range(0, len(listed)):
+                t = listed[i].split(b':')
+                index[t[0]] = t[1]
+
+            # return the block hash
+            return index[bytes(str(height), 'utf-8')]
 
     @classmethod
     def load_block (cls, path, name, hash):
         dir = os.path.join(path, name + '_chain')
         block = open(os.path.join(dir, str(hash, 'utf-8') + '_block'), 'rb').read()
         return cls.unpack_block(block)
+
+    @classmethod
+    def load_genesis_block (cls, path, name):
+        dir = os.path.join(path, name + '_chain')
+        block = open(os.path.join(dir, 'genesis'), 'rb').read()
+        return cls.unpack_genesis_block(block)
 
     @classmethod
     def load_block_chain (cls, path, name):
