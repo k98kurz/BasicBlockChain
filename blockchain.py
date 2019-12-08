@@ -3,7 +3,7 @@ from nacl.hash import sha256
 from nacl.signing import SigningKey, VerifyKey
 from nacl.public import PrivateKey, Box, SealedBox
 import nacl
-import os.path
+from operator import itemgetter
 
 '''
     Copyright (c) 2019 Jonathan Voss
@@ -27,8 +27,11 @@ class BasicBlockChain(list):
         self.address = b''
         self.public_key = b''
 
-    def sort (self):
-        # find genesis block
+    def sort (self, key=None, reverse=False):
+        if key == None:
+            super().sort(key=itemgetter('block_height'), reverse=reverse)
+        else:
+            super().sort(key=key, reverse=reverse)
 
     # assuming we have the node's seed but not the genesis key
     @classmethod
@@ -51,6 +54,7 @@ class BasicBlockChain(list):
 
         blockchain.address = blockchain[0]['node_address']
         blockchain.public_key = blockchain[0]['public_key']
+        blockchain.sort()
 
         return blockchain
 
@@ -110,6 +114,7 @@ class BasicBlockChain(list):
 
         # return the block
         return {
+            'block_height': previous_block['block_height'] + 1,
             'hash': hash,
             'signature': signature.signature,
             'address': signing_key.verify_key._key,
@@ -135,7 +140,7 @@ class BasicBlockChain(list):
         difficulty = difficulty if difficulty < 5 and difficulty > 0 else 1
 
         # mild PoW
-        while not meets_difficulty(signature.signature, difficulty):
+        while not BasicBlockChain.meets_difficulty(signature.signature, difficulty):
             nonce = nacl.utils.random(16)
             signature = genesis_key.sign(node_address + nonce + public_key)
 
@@ -143,6 +148,7 @@ class BasicBlockChain(list):
 
         # return the genesis block
         return {
+            'block_height': 0,
             'hash': hash,
             'signature': signature.signature,
             'address': genesis_key.verify_key._key,
