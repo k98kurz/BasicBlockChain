@@ -24,36 +24,42 @@ from binascii import hexlify
     CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 '''
 
+# set up directories
+if not os.path.isdir('_chains'):
+    os.mkdir(os.path.join('.', '_chains'))
+if not os.path.isdir('_seeds'):
+    os.mkdir(os.path.join('.', '_seeds'))
+
 # get genesis seed from storage or create it
-if os.path.isfile('genesis.seed'):
-    genesis = BasicBlockChain.from_seed(open('genesis.seed', 'rb').read())
-    print('loaded genesis.seed from file')
+if os.path.isfile('_seeds/genesis'):
+    genesis = BasicBlockChain.from_seed(open('_seeds/genesis', 'rb').read())
+    print('loaded _seeds/genesis from file')
 else:
     genesis = BasicBlockChain.from_seed(nacl.utils.random(32))
-    open('genesis.seed', 'wb').write(genesis.seed)
-    print('generated genesis.seed and wrote to file')
+    open('_seeds/genesis', 'wb').write(genesis.seed)
+    print('generated _seeds/genesis and wrote to file')
 
 
 # create some nodes
-if os.path.isfile('node1.seed'):
-    node1 = BasicBlockChain.from_seed(open('node1.seed', 'rb').read())
-    print('loaded node1.seed from file')
+if os.path.isfile('_seeds/node1'):
+    node1 = BasicBlockChain.from_seed(open('_seeds/node1', 'rb').read())
+    print('loaded _seeds/node1 from file')
 else:
     node1 = BasicBlockChain.from_seed(nacl.utils.random(32))
-    open('node1.seed', 'wb').write(node1.seed)
-    print('generated node1.seed and wrote to file')
+    open('_seeds/node1', 'wb').write(node1.seed)
+    print('generated _seeds/node1 and wrote to file')
 
-if os.path.isfile('node2.seed'):
-    node2 = BasicBlockChain.from_seed(open('node2.seed', 'rb').read())
-    print('loaded node2.seed from file')
+if os.path.isfile('_seeds/node2'):
+    node2 = BasicBlockChain.from_seed(open('_seeds/node2', 'rb').read())
+    print('loaded _seeds/node2 from file')
 else:
     node2 = BasicBlockChain.from_seed(nacl.utils.random(32))
-    open('node2.seed', 'wb').write(node2.seed)
-    print('generated node2.seed and wrote to file')
+    open('_seeds/node2', 'wb').write(node2.seed)
+    print('generated _seeds/node2 and wrote to file')
 
 # load node1 from file system if present
 try:
-    node1.extend( SimpleSerializer.load_block_chain('.', hexlify(node1.address)) )
+    node1.extend( SimpleSerializer.load_block_chain('_chains', hexlify(node1.address)) )
     print('node1 blockchain loaded from files')
 
 # create blocks if nothing was found
@@ -73,7 +79,7 @@ except FileNotFoundError:
 
 # load node2 from file system if present
 try:
-    node2.extend( SimpleSerializer.load_block_chain('.', hexlify(node2.address)) )
+    node2.extend( SimpleSerializer.load_block_chain('_chains', hexlify(node2.address)) )
     print('node2 blockchain loaded from files')
 
 # create blocks if nothing was found
@@ -109,11 +115,11 @@ else:
 
 # write blockchains to file system
 # NB in application, you may want to use a database system instead
-SimpleSerializer.save_block_chain('.', hexlify(node1.address), node1)
-SimpleSerializer.save_block_chain('.', hexlify(node2.address), node2)
+SimpleSerializer.save_block_chain('_chains', hexlify(node1.address), node1)
+SimpleSerializer.save_block_chain('_chains', hexlify(node2.address), node2)
 
 # load blockchain from file
-blockchain = SimpleSerializer.load_block_chain('.', hexlify(node1.address))
+blockchain = SimpleSerializer.load_block_chain('_chains', hexlify(node1.address))
 
 # verify
 if BasicBlockChain.verify_chain(blockchain, genesis.address):
@@ -137,8 +143,8 @@ print('\nnode1 block chain:')
 SimpleSerializer.print_block_chain(node1)
 
 # index stuff
-hash = SimpleSerializer.find_block_hash('.', hexlify(node1.address), 3)
-block = SimpleSerializer.load_block('.', hexlify(node1.address), hash)
+hash = SimpleSerializer.find_block_hash('_chains', hexlify(node1.address), 3)
+block = SimpleSerializer.load_block('_chains', hexlify(node1.address), hash)
 print('\nhash of node1 block height 3 from file system: ', hash)
 print('block from file system:')
 SimpleSerializer.print_block(block)
