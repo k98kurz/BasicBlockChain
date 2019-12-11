@@ -11,7 +11,7 @@ class SimpleSerializer():
 
         path = str(path, 'utf-8') if isinstance(path, bytes) else path
         name = str(name, 'utf-8') if isinstance(name, bytes) else name
-        dir = os.path.join(path, name + '_chain')
+        dir = os.path.join(path, name)
         if not os.path.isdir(dir):
             os.mkdir(os.path.join('./', dir))
 
@@ -35,7 +35,7 @@ class SimpleSerializer():
     def find_block_hash (path, name, height):
         path = str(path, 'utf-8') if isinstance(path, bytes) else path
         name = str(name, 'utf-8') if isinstance(name, bytes) else name
-        dir = os.path.join(path, name + '_chain')
+        dir = os.path.join(path, name)
 
         if height == 0:
             # load genesis file
@@ -63,7 +63,7 @@ class SimpleSerializer():
     def load_block (cls, path, name, hash):
         path = str(path, 'utf-8') if isinstance(path, bytes) else path
         name = str(name, 'utf-8') if isinstance(name, bytes) else name
-        dir = os.path.join(path, name + '_chain')
+        dir = os.path.join(path, name)
         block = open(os.path.join(dir, str(hash, 'utf-8') + '_block'), 'rb').read()
         return cls.unpack_block(block)
 
@@ -71,7 +71,7 @@ class SimpleSerializer():
     def load_genesis_block (cls, path, name):
         path = str(path, 'utf-8') if isinstance(path, bytes) else path
         name = str(name, 'utf-8') if isinstance(name, bytes) else name
-        dir = os.path.join(path, name + '_chain')
+        dir = os.path.join(path, name)
         block = open(os.path.join(dir, 'genesis'), 'rb').read()
         return cls.unpack_genesis_block(block)
 
@@ -79,7 +79,7 @@ class SimpleSerializer():
     def load_block_chain (cls, path, name):
         path = str(path, 'utf-8') if isinstance(path, bytes) else path
         name = str(name, 'utf-8') if isinstance(name, bytes) else name
-        dir = os.path.join(path, name + '_chain')
+        dir = os.path.join(path, name)
         chain = [open(os.path.join(dir, 'genesis'), 'rb').read()]
         files = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
         for i in range(0, len(files)):
