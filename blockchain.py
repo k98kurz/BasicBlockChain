@@ -136,6 +136,7 @@ class BasicBlockChain(list):
     @staticmethod
     def create_genesis_block (genesis_key, node_address, public_key, difficulty=1):
         nonce = nacl.utils.random(16)
+        public_key = public_key._public_key if isinstance(public_key, nacl.public.PublicKey) else public_key
         signature = genesis_key.sign(node_address + nonce + public_key)
         difficulty = difficulty if difficulty < 5 and difficulty > 0 else 1
 
