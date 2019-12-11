@@ -1,7 +1,7 @@
 from nacl.encoding import RawEncoder
 from nacl.hash import sha256
 from nacl.signing import SigningKey, VerifyKey
-from nacl.public import PrivateKey, Box, SealedBox
+from nacl.public import PublicKey, PrivateKey, Box, SealedBox
 import nacl
 from operator import itemgetter
 
@@ -54,7 +54,7 @@ class BasicBlockChain(list):
 
         blockchain.sort()
         blockchain.address = blockchain[0]['node_address']
-        blockchain.public_key = blockchain[0]['public_key']
+        blockchain.public_key = PublicKey(blockchain[0]['public_key'])
 
         return blockchain
 
