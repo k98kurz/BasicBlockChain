@@ -52,9 +52,9 @@ class BasicBlockChain(list):
         for i in range(0, len(chain)):
             blockchain.append(chain[i])
 
+        blockchain.sort()
         blockchain.address = blockchain[0]['node_address']
         blockchain.public_key = blockchain[0]['public_key']
-        blockchain.sort()
 
         return blockchain
 
