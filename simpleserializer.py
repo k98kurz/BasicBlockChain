@@ -9,6 +9,8 @@ class SimpleSerializer():
         if not isinstance(blockchain, BasicBlockChain):
             raise TypeError('blockchain argument must be of class BasicBlockChain')
 
+        path = str(path, 'utf-8') if isinstance(path, bytes) else path
+        name = str(name, 'utf-8') if isinstance(name, bytes) else name
         dir = os.path.join(path, name + '_chain')
         if not os.path.isdir(dir):
             os.mkdir(os.path.join('./', dir))
@@ -31,6 +33,8 @@ class SimpleSerializer():
 
     @staticmethod
     def find_block_hash (path, name, height):
+        path = str(path, 'utf-8') if isinstance(path, bytes) else path
+        name = str(name, 'utf-8') if isinstance(name, bytes) else name
         dir = os.path.join(path, name + '_chain')
 
         if height == 0:
@@ -57,18 +61,24 @@ class SimpleSerializer():
 
     @classmethod
     def load_block (cls, path, name, hash):
+        path = str(path, 'utf-8') if isinstance(path, bytes) else path
+        name = str(name, 'utf-8') if isinstance(name, bytes) else name
         dir = os.path.join(path, name + '_chain')
         block = open(os.path.join(dir, str(hash, 'utf-8') + '_block'), 'rb').read()
         return cls.unpack_block(block)
 
     @classmethod
     def load_genesis_block (cls, path, name):
+        path = str(path, 'utf-8') if isinstance(path, bytes) else path
+        name = str(name, 'utf-8') if isinstance(name, bytes) else name
         dir = os.path.join(path, name + '_chain')
         block = open(os.path.join(dir, 'genesis'), 'rb').read()
         return cls.unpack_genesis_block(block)
 
     @classmethod
     def load_block_chain (cls, path, name):
+        path = str(path, 'utf-8') if isinstance(path, bytes) else path
+        name = str(name, 'utf-8') if isinstance(name, bytes) else name
         dir = os.path.join(path, name + '_chain')
         chain = [open(os.path.join(dir, 'genesis'), 'rb').read()]
         files = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
