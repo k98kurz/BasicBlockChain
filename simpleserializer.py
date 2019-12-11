@@ -166,16 +166,21 @@ class SimpleSerializer():
     def print_block (block):
         print('{')
         print('\tblock_height: ', block['block_height'])
-        print('\thash: ', hexlify(block['hash']))
-        print('\tsignature: ', hexlify(block['signature']))
-        print('\taddress: ', hexlify(block['address']))
-        print('\tnonce: ', hexlify(block['nonce']))
+        print('\thash: ', str(hexlify(block['hash']), 'utf-8'))
+        print('\tsignature: ', str(hexlify(block['signature']), 'utf-8'))
+        print('\taddress: ', str(hexlify(block['address']), 'utf-8'))
+        print('\tnonce: ', str(hexlify(block['nonce']), 'utf-8'))
 
         if block['block_height'] == 0:
-            print('\tpublic_key: ', hexlify(block['public_key']))
-            print('\tnode_address: ', hexlify(block['node_address']))
+            print('\tpublic_key: ', str(hexlify(block['public_key']), 'utf-8'))
+            print('\tnode_address: ', str(hexlify(block['node_address']), 'utf-8'))
         else:
-            print('\tprevious_block: ', hexlify(block['previous_block']))
+            print('\tprevious_block: ', str(hexlify(block['previous_block']), 'utf-8'))
             print('\tbody: ', block['body'])
 
         print('}')
+
+    @staticmethod
+    def print_block_chain (blockchain):
+        for i in range(0, len(blockchain)):
+            SimpleSerializer.print_block(blockchain[i])
