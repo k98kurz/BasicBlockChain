@@ -48,66 +48,118 @@ which is sufficient for any task.
 
 1. Install the `python3-nacl` library.
 2. Put `blockchain.py` somewhere in the project files.
-3. `import [path/to/blockchain] as bc`
-4. `from nacl.public import PrivateKey`
-5. `from nacl.signing import SigningKey, VerifyKey`
+3. `from [path/to/blockchain] import BasicBlockChain`
 
 See `sample.py` for some sample code.
 
 
 # Methods
 
-### setup_node (seed)
+## BasicBlockChain
+
+Inherits from list and has these definitions:
+
+- Constructors
+    1. `__init__`
+    2. from_seed
+    3. from_chain
+    4. from_genesis_key
+    5. from_genesis_block
+
+- Non-constructor class methods
+    1. verify_block
+    2. verify_genesis_block
+    3. verify_chain
+
+- Instance methods
+    1. add_block
+    2. encrypt
+    3. decrypt
+    4. encrypt_sealed
+    5. decrypt_sealed
+    6. sort (override)
+
+- Static methods
+    1. meets_difficulty
+    2. create_block
+    3. create_genesis_block
+
+### __init__ ()
+
+Returns BasicBlockChain with following instance attributes:
+- `difficulty`: 1
+- `address`: empty byte string
+- `public_key`: empty byte string
+
+### @classmethod from_seed (seed)
 
 Parameter:
-- seed: byte string to seed the CSPRNG
+- `seed`: 32 bytes to seed the CSPRNG
 
-Returns a dict of this form:
+Returns a BasicBlockChain with the following instance attributes:
 
-```
-{
-    signing_key: nacl.signing.SigningKey,
-    verify_key: nacl.signing.VerifyKey,
-    address: byte string of verify_key,
-    private_key: nacl.public.PrivateKey,
-    public_key: nacl.public.PublicKey
-}
-```
+- `seed`: bytes
+- `signing_key`: `nacl.signing.SigningKey`
+- `verify_key`: `nacl.signing.VerifyKey`
+- `address`: byte string of verify_key
+- `private_key`: `nacl.public.PrivateKey`
+- `public_key`: `nacl.public.PublicKey`
 
-Th SigningKey is derived from the seed, and all other values are derived from it.
+The SigningKey is derived from the seed, and all other values are derived from it.
 
-### meets_difficulty (signature, difficulty=1)
+### @classmethod from_chain (chain)
+
+Parameter:
+- `chain`: list
+
+Returns a BasicBlockChain with the contents of `chain` and the following instance attributes:
+
+- `address`: byte string
+- `public_key`: `nacl.public.PublicKey`
+
+### @classmethod from_genesis_key (genesis_key)
+
+Parameter:
+- `genesis_key`: `nacl.signing.SigningKey`
+
+Generates a seed and returns result of BasicBlockChain.from_seed with a genesis block and `genesis_address` attribute.
+
+### @classmethod from_genesis_block (genesis_block)
+
+Parameter:
+- `genesis_block`: dict of form:
+    - `block_height`: int
+    - `hash`: 32 byte string
+    - `signature`: 64 byte string
+    - `address`: 32 byte string genesis address
+    - `node_address`: 32 byte string
+    - `nonce`: 16 bytes
+    - `public_key`: `nacl.public.PublicKey`
+
+Returns a BasicBlockChain with the genesis_block appended and the following instance attributes:
+- `public_key`: nacl.public.PublicKey
+- `address`: byte string of node address
+
+### add_block (data)
+
+Parameter:
+- `data`: bytes
+
+Calls `create_block` and appends the result to `self`. Returns `None`.
+
+### @staticmethod meets_difficulty (signature, difficulty=1)
 
 Parameters:
-- signature: byte string of result from `nacl.signing.SigningKey.sign()`
-- difficulty=1: int, minimum number of preceding zeroes in block hash
+- `signature`: byte string of result from `nacl.signing.SigningKey.sign()`
+- `difficulty=1`: int, minimum number of preceding zeroes in block hash
 
 Returns boolean:
-- True if the sha256 of the signature has difficulty number of preceding zeroes
-- False otherwise
+- `True` if the sha256 of the signature has difficulty number of preceding zeroes
+- `False` otherwise
 
 (For brevity, I will omit explanation of difficulty=1 hereinafter.)
 
-### create_genesis_block (genesis_key, node_address, public_key, difficulty=1)
-
-Parameters:
-- genesis_key: `nacl.signing.SigningKey`
-- node_address: `_key` element from `nacl.signing.VerifyKey`, e.g. `node['verify_key']._key`
-- public_key: `_public_key` element from `nacl.public.PublicKey`, e.g. `node['public_key']._public_key`
-
-Returns a dict of this form:
-```
-{
-    hash: 32 bytes,
-    signature: 64 bytes,
-    address: 32 bytes (genesis_address),
-    node_address: 32 bytes,
-    nonce: 16 bytes,
-    public_key: 32 bytes
-}
-```
-
-### create_block (signing_key, previous_block, body, difficulty=1)
+### @staticmethod create_block (signing_key, previous_block, body, difficulty=1)
 
 Parameters:
 - signing_key: `nacl.signing.SigningKey`
@@ -117,6 +169,7 @@ Parameters:
 Returns dict of this form:
 ```
 {
+    block_height: int,
     hash: 32 bytes,
     signature: 64 bytes,
     address: 32 bytes,
@@ -126,102 +179,233 @@ Returns dict of this form:
 }
 ```
 
-### verify_chain (blocks, genesis_address, difficulty=1)
+### @staticmethod create_genesis_block (genesis_key, node_address, public_key, difficulty=1)
 
 Parameters:
-- blocks: list of blocks (dicts or byte strings)
-- genesis_address: byte string of genesis address
+- `genesis_key`: `nacl.signing.SigningKey`
+- `node_address`: `_key` element from `nacl.signing.VerifyKey`, e.g. `node.verify_key._key`
+- `public_key`: `_public_key` element from `nacl.public.PublicKey`, e.g. `node.public_key._public_key`
 
-Returns a boolean:
-- False if verify_genesis_block fails on first block
-- False if verify_block fails on any other block
-- False if any non-genesis block does not reference previous block
-- True if all checks are passed
+Returns a dict of this form:
+```
+{
+    block_height: 0,
+    hash: 32 bytes,
+    signature: 64 bytes,
+    address: 32 bytes (genesis_address),
+    node_address: 32 bytes,
+    nonce: 16 bytes,
+    public_key: 32 bytes
+}
+```
 
-### verify_genesis_block (block, genesis_address, difficulty=1)
-
-Parameters:
-- block: dict or byte string
-- genesis_address: byte string
-
-Returns a boolean:
-- False if block address is not the genesis_address
-- False if block hash does not meet difficulty level
-- False if block signature fails verification
-- False if unpacking a byte string block into a dict encounters a ValueError
-- True if all checks are passed
-
-### verify_block (block, difficulty=1)
+### @classmethod verify_block (block, difficulty=1)
 
 Parameters:
-- block: dict or byte string
+- `block`: dict (see `create_block` above)
 
 Returns a boolean:
-- False if block hash does not meet difficulty level
-- False if block signature fails verification
-- False if unpacking a byte string block into a dict encounters a ValueError
-- True if all checks are passed
+- `False` if block hash does not meet difficulty level
+- `False` if block signature fails verification
+- `False` if the block is malformed/missing data
+- `True` if all checks are passed
 
-### unpack_block (block_bytes)
+### @classmethod verify_genesis_block (block, genesis_address, difficulty=1)
+
+Parameters:
+- `block`: dict
+- `genesis_address`: byte string
+
+Returns a boolean:
+- `False` if block address is not the genesis_address
+- `False` if block hash does not meet difficulty level
+- `False` if block signature fails verification
+- `False` if the block is malformed/missing data
+- `True` if all checks are passed
+
+### @classmethod verify_chain (blocks, genesis_address, difficulty=1)
+
+Parameters:
+- `blocks`: list of dicts
+- `genesis_address`: byte string of genesis address
+
+Returns a boolean:
+- `False` if `verify_genesis_block` fails on first block
+- `False` if `verify_block` fails on any other block
+- `False` if any non-genesis block does not reference previous block
+- `True` if all checks are passed
+
+### encrypt (public_key, plaintext)
+
+Parameters:
+- `public_key`: `nacl.public.PublicKey`
+- `plaintext`: bytes
+
+Does ECDHE and returns the ciphertext.
+
+### decrypt (public_key, ciphertext)
+
+Parameters:
+- `public_key`: `nacl.public.PublicKey`
+- `ciphertext`: bytes
+
+Does ECDHE and returns the plaintext.
+
+### encrypt_sealed (public_key, plaintext)
+
+Parameters:
+- `public_key`: `nacl.public.PublicKey`
+- `plaintext`: bytes
+
+Does ephemeral ECDHE and returns the ciphertext.
+
+### decrypt_sealed (ciphertext)
 
 Parameter:
-- block_bytes: byte string (at least 176 bytes long)
+- `ciphertext`: bytes
+
+Does ephemeral ECDHA and returns the plaintext.
+
+
+
+## SimpleSerializer
+
+Meant to be used from static context. Has these definitions:
+
+- Non-constructor class methods:
+    1. save_block_chain
+    2. find_block_hash
+    3. load_block
+    4. load_genesis_block
+    5. load_block_chain
+    6. unpack_block
+    7. unpack_chain
+
+- Static methods:
+    1. unpack_genesis_block
+    2. block_index
+    3. block_index_hex
+    4. pack_block
+    5. pack_genesis_block
+    6. print_block
+    7. print_block_chain
+
+
+### @classmethod save_block_chain (path, name, chain)
+
+Parameters:
+- `path`: string (should be namespaced with genesis_address if allowing subnetworks)
+- `name`: string (should be hex or b64 of node address)
+- `chain`: list of packed (bytes) or unpacked (dict) blocks
+
+Saves blocks to flat files. Creates path/name directory if necessary. No return value.
+
+### @classmethod find_block_hash (path, name, height)
+
+Parameters:
+- `path`: string
+- `name`: string
+- `height`: int
+
+Parses the (human-readable) `index` file for the block chain and returns the hex hash of the requested block height.
+
+### @classmethod load_block (path, name, hash)
+
+Parameters:
+- `path`: string
+- `name`: string
+- `hash`: string
+
+Reads the block file and returns `cls.unpack_block(block)`.
+
+### @classmethod load_genesis_block (path, name)
+
+Parameters:
+- `path`: string
+- `name`: string
+
+Reads the genesis file and returns `cls.unpack_genesis_block(block)`.
+
+### @classmethod load_block_chain (path, name)
+
+Parameters:
+- `path`: string (should be namespaced with genesis_address if allowing subnetworks)
+- `name`: string (should be hex or b64 of node address)
+
+Loads a block chain from `path/name`. Returns a `BasicBlockChain` of unpacked blocks.
+
+### @classmethod unpack_block (block_bytes)
+
+Parameter:
+- `block_bytes`: byte string (at least 178 bytes long)
 
 Returns dict of same form as `create_block`.
 
-Raises ValueError if len(block_bytes) < 176.
+Raises `ValueError` if len(block_bytes) < 178.
 
-### pack_block (block)
-
-Parameter:
-- block: dict of form displayed above
-
-Returns a byte string: hash + signature + address + previous_block + nonce + body
-
-### unpack_genesis_block (block_bytes)
+### @staticmethod unpack_genesis_block (block_bytes)
 
 Parameter:
 - block_bytes: byte string (208 bytes exactly)
 
 Returns dict of same form as `create_genesis_block`.
 
-Raises ValueError if len(block_bytes) != 208.
+Raises `ValueError` if len(block_bytes) != 210.
 
-### pack_genesis_block (block)
-
-Parameter:
-- block: dict of form displayed above
-
-Returns a byte string: hash + signature + genesis_address + node_address + nonce + public_key
-
-### unpack_chain (chain)
+### @classmethod unpack_chain (chain)
 
 Parameter:
-- chain: list of packed blocks (bytes)
+- `chain`: `list` of packed blocks (bytes)
 
-Returns a list of unpacked blocks (dicts of forms outlined above).
+Returns a `list` of unpacked blocks (dicts of forms outlined above).
 
-### save_block_chain (path, name, chain)
+### @staticmethod block_index (block)
 
-Parameters:
-- path: string (should be namespaced with genesis_address if allowing subnetworks)
-- name: string (should be hex or b64 of node address)
-- chain: list of packed (bytes) or unpacked (dict) blocks
+Parameter:
+- `block`: `dict`
 
-Saves blocks to flat files. Creates path/name directory if necessary. No return value.
+Encodes the block height in bytes.
 
-### load_block_chain (path, name)
+### @staticmethod block_index_hex (block)
 
-Parameters:
-- path: string (should be namespaced with genesis_address if allowing subnetworks)
-- name: string (should be hex or b64 of node address)
+Parameter:
+- `block`: `dict`
 
-Loads a block chain from path/name. Returns a list of unpacked blocks (dicts).
+Returns human-readable `bytes` for the index file. Of form `numeral_height:hex_hash`.
+
+### @classmethod pack_block (block)
+
+Parameter:
+- `block`: `dict` of form displayed above
+
+Returns a byte string: index + hash + signature + address + previous_block + nonce + body
+
+### @staticmethod pack_genesis_block (block)
+
+Parameter:
+- `block`: `dict` of form displayed above
+
+Returns a byte string: \x01\x00 + hash + signature + genesis_address + node_address + nonce + public_key
+
+### @staticmethod print_block (block)
+
+Parameter:
+- `block`: `dict`
+
+Prints the block in clean, human-readable format.
+
+### @classmethod print_block_chain (blockchain)
+
+Parameter:
+- `blockchain`: `BasicBlockChain`
+
+Prints the chain in clean, human-readable format. Does not print instance attributes.
+
 
 
 # To Do
 
-- Refactor into a class.
+- Write new serializer that uses SQLite.
 
 # Copyright / ISC License
 
