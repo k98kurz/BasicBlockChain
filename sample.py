@@ -1,8 +1,10 @@
-import blockchain as bc
+from blockchain import BasicBlockChain
+from simpleserializer import SimpleSerializer
 from nacl.public import PrivateKey
 from nacl.signing import SigningKey, VerifyKey
 from nacl.hash import sha256
 from nacl.encoding import RawEncoder
+import nacl.utils
 import os.path
 from binascii import hexlify
 
@@ -22,90 +24,109 @@ from binascii import hexlify
     CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 '''
 
-# get genesis file from storage or create it
+# get genesis seed from storage or create it
 if os.path.isfile('genesis.seed'):
-    genesis = {'seed': open('genesis.seed', 'rb').read()}
+    genesis = BasicBlockChain.from_seed(open('genesis.seed', 'rb').read())
+    print('loaded genesis.seed from file')
 else:
-    genesis = {'seed': PrivateKey.generate()._private_key}
-    open('genesis.seed', 'wb').write(genesis['seed'])
-
-# derive some values
-genesis['signing_key'] = SigningKey(genesis['seed'])
-genesis['address'] = genesis['signing_key'].verify_key._key
+    genesis = BasicBlockChain.from_seed(nacl.utils.random(32))
+    open('genesis.seed', 'wb').write(genesis.seed)
+    print('generated genesis.seed and wrote to file')
 
 
 # create some nodes
 if os.path.isfile('node1.seed'):
-    node1 = bc.setup_node(open('node1.seed', 'rb').read())
+    node1 = BasicBlockChain.from_seed(open('node1.seed', 'rb').read())
+    print('loaded node1.seed from file')
 else:
-    node1 = bc.setup_node(PrivateKey.generate()._private_key)
-    open('node1.seed', 'wb').write(node1['seed'])
+    node1 = BasicBlockChain.from_seed(nacl.utils.random(32))
+    open('node1.seed', 'wb').write(node1.seed)
+    print('generated node1.seed and wrote to file')
 
 if os.path.isfile('node2.seed'):
-    node2 = bc.setup_node(open('node2.seed', 'rb').read())
+    node2 = BasicBlockChain.from_seed(open('node2.seed', 'rb').read())
+    print('loaded node2.seed from file')
 else:
-    node2 = bc.setup_node(PrivateKey.generate()._private_key)
-    open('node2.seed', 'wb').write(node2['seed'])
+    node2 = BasicBlockChain.from_seed(nacl.utils.random(32))
+    open('node2.seed', 'wb').write(node2.seed)
+    print('generated node2.seed and wrote to file')
 
+# load node1 from file system if present
+try:
+    node1.extend( SimpleSerializer.load_block_chain('.', hexlify(node1.address)) )
+    print('node1 blockchain loaded from files')
 
-# create genesis blocks
-node1['blockchain'] = [ bc.create_genesis_block(genesis['signing_key'], node1['verify_key']._key, node1['public_key']._public_key) ]
-node2['blockchain'] = [ bc.create_genesis_block(genesis['signing_key'], node2['verify_key']._key, node2['public_key']._public_key) ]
+# create blocks if nothing was found
+except FileNotFoundError:
+    # create genesis block
+    node1.append( BasicBlockChain.create_genesis_block(genesis.signing_key, node1.address, node1.public_key) )
+
+    # add a few blocks to each
+    node1.add_block(b'Hail Julius Caesar or something.')
+    node1.add_block(b'Traitors should be fed to the Teutons!')
+
+    # make node1 chain a bit longer
+    for i in range(3, 12):
+        node1.add_block(b'Test block ' + bytes(str(i), 'utf-8'))
+
+    print('generated node1 blockchain')
+
+# load node2 from file system if present
+try:
+    node2.extend( SimpleSerializer.load_block_chain('.', hexlify(node2.address)) )
+    print('node2 blockchain loaded from files')
+
+# create blocks if nothing was found
+except FileNotFoundError:
+    node2.append( BasicBlockChain.create_genesis_block(genesis.signing_key, node2.address, node2.public_key) )
+    node2.add_block(b'Knives are cool tools of Roman politics.')
+    node2.add_block(b'Caesar was the real traitor!')
+    print('generated node2 blockchain')
+
 
 # verify genesis blocks
-if bc.verify_genesis_block(node1['blockchain'][0], genesis['address']):
+if BasicBlockChain.verify_genesis_block(node1[0], genesis.address):
     print('Node 1 genesis block verified.')
 else:
     print('Node 1 genesis block failed verification.')
 
-if bc.verify_genesis_block(node2['blockchain'][0], genesis['address']):
+if BasicBlockChain.verify_genesis_block(node2[0], genesis.address):
     print('Node 2 genesis block verified.')
 else:
     print('Node 2 genesis block failed verification.')
 
-
-# add a few blocks to each
-node1['blockchain'].append(bc.create_block(node1['signing_key'], node1['blockchain'][-1], b'Hail Julius Caesar or something.'))
-node2['blockchain'].append(bc.create_block(node2['signing_key'], node2['blockchain'][-1], b'Knives are cool tools of Roman politics.'))
-node1['blockchain'].append(bc.create_block(node1['signing_key'], node1['blockchain'][-1], b'Traitors should be fed to the Teutons!'))
-node2['blockchain'].append(bc.create_block(node2['signing_key'], node2['blockchain'][-1], b'Caesar was the real traitor!'))
-
-# make node1 chain a bit longer
-for i in range(3, 12):
-    node1['blockchain'].append(bc.create_block(node1['signing_key'], node1['blockchain'][-1], b'Test block' + bytes(str(i), 'utf-8')))
-
 # verify blockchains
-if bc.verify_chain(node1['blockchain'], genesis['address']):
+if BasicBlockChain.verify_chain(node1, genesis.address):
     print('Node 1 block chain verified.')
 else:
     print('Node 1 block chain failed verification.')
 
-if bc.verify_chain(node2['blockchain'], genesis['address']):
+if BasicBlockChain.verify_chain(node2, genesis.address):
     print('Node 2 block chain verified.')
 else:
     print('Node 2 block chain failed verification.')
 
 
-# write blockchains to file
-# NB in application, the file name should be the node address in b64 or hex
-bc.save_block_chain('.', 'node1', node1['blockchain'])
-bc.save_block_chain('.', 'node2', node2['blockchain'])
+# write blockchains to file system
+# NB in application, you may want to use a database system instead
+SimpleSerializer.save_block_chain('.', hexlify(node1.address), node1)
+SimpleSerializer.save_block_chain('.', hexlify(node2.address), node2)
 
 # load blockchain from file
-blockchain = bc.load_block_chain('.', 'node1')
+blockchain = SimpleSerializer.load_block_chain('.', hexlify(node1.address))
 
 # verify
-if bc.verify_chain(blockchain, genesis['address']):
+if BasicBlockChain.verify_chain(blockchain, genesis.address):
     print('Verified block chain retrieved from file system.')
 else:
     print('Failed to verify block chain retrieved from file system.')
 
 
 # hostile takeover
-blockchain.append(bc.create_block(node2['signing_key'], node1['blockchain'][1], b'Hostile takeover of node1 chain by node2.'))
+blockchain.append(BasicBlockChain.create_block(node2.signing_key, node1[1], b'Hostile takeover of node1 chain by node2.'))
 
 # verify
-if bc.verify_chain(blockchain, genesis['address']):
+if BasicBlockChain.verify_chain(blockchain, genesis.address):
     print('Hostile takeover of node1 chain by node2 not detected.')
 else:
     print('Node2 gtfo of node1\'s blockchain')
@@ -113,41 +134,33 @@ else:
 
 # print out the contents of a block chain
 print('\nnode1 block chain:')
-print('0 (genesis): {')
-print('\thash: ', hexlify(node1['blockchain'][0]['hash']))
-print('\tsignature: ', hexlify(node1['blockchain'][0]['signature']))
-print('\taddress: ', hexlify(node1['blockchain'][0]['address']))
-print('\tnode_address: ', hexlify(node1['blockchain'][0]['node_address']))
-print('\tnonce: ', hexlify(node1['blockchain'][0]['nonce']))
-print('\tpublic_key: ', hexlify(node1['blockchain'][0]['public_key']))
-print('}')
+SimpleSerializer.print_block_chain(node1)
 
-for i in range(1, len(node1['blockchain'])):
-    print(i, ': {')
-    print('\thash: ', hexlify(node1['blockchain'][i]['hash']))
-    print('\tsignature: ', hexlify(node1['blockchain'][i]['signature']))
-    print('\taddress: ', hexlify(node1['blockchain'][i]['address']))
-    print('\tprevious_block_hash: ', hexlify(node1['blockchain'][i]['previous_block']))
-    print('\tnonce: ', hexlify(node1['blockchain'][i]['nonce']))
-    print('\tbody: ', node1['blockchain'][i]['body'])
-    print('}')
+# index stuff
+hash = SimpleSerializer.find_block_hash('.', hexlify(node1.address), 3)
+block = SimpleSerializer.load_block('.', hexlify(node1.address), hash)
+print('\nhash of node1 block height 3 from file system: ', hash)
+print('block from file system:')
+SimpleSerializer.print_block(block)
 
-# ecdhe encrypt: node1
+# ecdhe encrypt: node1 -> node2
+print('\n***ECDHE***')
 message = b'Meet in the bathroom.'
-ciphertext = bc.encrypt(node1['private_key'], node2['public_key'], message)
-print('\nmessage: ', message)
+ciphertext = node1.encrypt(node2.public_key, message)
+print('\nnode1.public_key: ', hexlify(node1.public_key._public_key))
+print('message: ', message)
 print('encrypted: ', hexlify(ciphertext))
 
 # ecdhe decrypt
-plaintext = bc.decrypt(node2['private_key'], node1['public_key'], ciphertext)
+plaintext = node2.decrypt(node1.public_key, ciphertext)
 print('decrypted: ', plaintext)
 
 # ephemeral ecdhe encrypt
 message = b'No way! It\'s a trap!'
-ciphertext = bc.encrypt_sealed(node1['public_key'], message)
+ciphertext = node2.encrypt_sealed(node1.public_key, message)
 print('\nmessage: ', message)
 print('sealed ciphertext: ', hexlify(ciphertext))
 
 # ephemeral ecdhe decrypt
-plaintext = bc.decrypt_sealed(node1['private_key'], ciphertext)
+plaintext = node1.decrypt_sealed(ciphertext)
 print('unsealed plaintext: ', plaintext)
