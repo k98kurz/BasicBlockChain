@@ -26,13 +26,13 @@ class SimpleSerializer():
         for i in range(1, len(blockchain)):
             data = cls.pack_block(blockchain[i]) if type(blockchain[i]) == type({}) else blockchain[i]
             open(os.path.join( dir, str(hexlify(blockchain[i]['hash']), 'utf-8') + '_block' ), 'wb').write(data)
-            index += SimpleSerializer.block_index_hex(blockchain[i]) + b'\n'
+            index += cls.block_index_hex(blockchain[i]) + b'\n'
 
         # save index
         open(os.path.join(dir, 'index'), 'wb').write(index)
 
-    @staticmethod
-    def find_block_hash (path, name, height):
+    @classmethod
+    def find_block_hash (cls, path, name, height):
         path = str(path, 'utf-8') if isinstance(path, bytes) else path
         name = str(name, 'utf-8') if isinstance(name, bytes) else name
         dir = os.path.join(path, name)
@@ -40,7 +40,7 @@ class SimpleSerializer():
         if height == 0:
             # load genesis file
             data = open(os.path.join(dir, 'genesis'), 'rb').read()
-            block = SimpleSerializer.unpack_genesis_block(data)
+            block = cls.unpack_genesis_block(data)
             return block['hash']
 
         else:
@@ -164,9 +164,9 @@ class SimpleSerializer():
     def block_index_hex (block):
         return bytes(str(block['block_height']), 'utf-8') + b':' + hexlify(block['hash'])
 
-    @staticmethod
-    def pack_block (block):
-        return SimpleSerializer.block_index(block) + block['signature'] + block['address'] + block['previous_block'] + block['nonce'] + block['body']
+    @classmethod
+    def pack_block (cls, block):
+        return cls.block_index(block) + block['signature'] + block['address'] + block['previous_block'] + block['nonce'] + block['body']
 
     @staticmethod
     def pack_genesis_block (block):
@@ -190,7 +190,7 @@ class SimpleSerializer():
 
         print('}')
 
-    @staticmethod
-    def print_block_chain (blockchain):
+    @classmethod
+    def print_block_chain (cls, blockchain):
         for i in range(0, len(blockchain)):
-            SimpleSerializer.print_block(blockchain[i])
+            cls.print_block(blockchain[i])

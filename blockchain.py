@@ -171,7 +171,7 @@ class BasicBlockChain(list):
             return True
         except nacl.exceptions.BadSignatureError:
             return False
-        except ValueError:
+        except KeyError:
             return False
 
     # returns True or False
@@ -190,7 +190,7 @@ class BasicBlockChain(list):
             return True
         except nacl.exceptions.BadSignatureError:
             return False
-        except ValueError:
+        except KeyError:
             return False
 
     # returns True or False

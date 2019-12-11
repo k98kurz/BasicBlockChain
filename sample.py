@@ -119,20 +119,20 @@ SimpleSerializer.save_block_chain('_chains', hexlify(node1.address), node1)
 SimpleSerializer.save_block_chain('_chains', hexlify(node2.address), node2)
 
 # load blockchain from file
-blockchain = SimpleSerializer.load_block_chain('_chains', hexlify(node1.address))
+loaded1 = SimpleSerializer.load_block_chain('_chains', hexlify(node1.address))
 
 # verify
-if BasicBlockChain.verify_chain(blockchain, genesis.address):
+if BasicBlockChain.verify_chain(loaded1, genesis.address):
     print('Verified block chain retrieved from file system.')
 else:
     print('Failed to verify block chain retrieved from file system.')
 
 
 # hostile takeover
-blockchain.append(BasicBlockChain.create_block(node2.signing_key, node1[1], b'Hostile takeover of node1 chain by node2.'))
+loaded1.append(BasicBlockChain.create_block(node2.signing_key, node1[1], b'Hostile takeover of node1 chain by node2.'))
 
 # verify
-if BasicBlockChain.verify_chain(blockchain, genesis.address):
+if BasicBlockChain.verify_chain(loaded1, genesis.address):
     print('Hostile takeover of node1 chain by node2 not detected.')
 else:
     print('Node2 gtfo of node1\'s blockchain')
@@ -161,9 +161,9 @@ print('encrypted: ', hexlify(ciphertext))
 plaintext = node2.decrypt(node1.public_key, ciphertext)
 print('decrypted: ', plaintext)
 
-# ephemeral ecdhe encrypt
+# ephemeral ecdhe encrypt -> node1 (public_key loaded from file system)
 message = b'No way! It\'s a trap!'
-ciphertext = node2.encrypt_sealed(node1.public_key, message)
+ciphertext = node2.encrypt_sealed(loaded1.public_key, message)
 print('\nmessage: ', message)
 print('sealed ciphertext: ', hexlify(ciphertext))
 
