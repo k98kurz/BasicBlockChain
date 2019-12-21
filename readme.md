@@ -84,7 +84,7 @@ Inherits from list and has these definitions:
     2. create_block
     3. create_genesis_block
 
-### __init__ ()
+### `__init__` ()
 
 Returns BasicBlockChain with following instance attributes:
 - `difficulty`: 1
