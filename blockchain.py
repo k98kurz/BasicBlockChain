@@ -215,7 +215,7 @@ class BasicBlockChain(list):
         # verify other blocks
         for i in range(0, len(blockchain)):
             # throw it out if its genesis block is invalid
-            if i == 0 and not cls.verify_genesis_block(blockchain[0], genesis_address, difficulty_mode):
+            if i == 0 and not cls.verify_genesis_block(blockchain[0], genesis_address, difficulty, difficulty_mode):
                 return False
 
             # throw it out if any non-genesis block has a corrupt or fraudulent signature
