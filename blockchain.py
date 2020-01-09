@@ -89,15 +89,15 @@ class BasicBlockChain(list):
         self.append(new_block)
 
     @staticmethod
-    def meets_difficulty (signature, difficulty=1, mode=0):
+    def meets_difficulty (signature, difficulty=1, difficulty_mode=0):
         hash = sha256(signature, encoder=RawEncoder)
 
-        if mode == 0:
+        if difficulty_mode == 0:
             # determines if the block hash has enough preceding null bytes
             for i in range(0, difficulty):
                 if hash[i] > 0:
                     return False
-        if mode == 1:
+        if difficulty_mode == 1:
             # determins if the block has enough repeating digits at end
             for i in range(1, difficulty+1):
                 if hash[-i] != hash[-1-i]:
