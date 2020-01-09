@@ -14,8 +14,8 @@ different genesis addresses. Trust within a network largely depends upon the
 secrecy of the genesis key and the trustworthiness of its owner. For embedded
 devices, you can accomplish this by including the genesis seed in a file that
 is deleted after generating the genesis block on the first run or by having the
-device make an API request during the first run (which must be on a secure network)
-supplying its node address and receiving a genesis block.
+device make an API request during the first run (which should be on a secure network)
+supplying its node address, public key, and difficulty configuration and receiving a genesis block.
 
 Block chains are saved/loaded with a rudimentary file IO system as this was
 originally designed for use in small devices. I recommend writing custom
@@ -31,9 +31,10 @@ devices. If necessary, add timestamps to the body or fork the library.
 
 # Primitives
 
-This uses the PyNaCL library for Ed25519 signatures and sha256 hashes. Eventually,
-I will add some functions for ECDHE using Curve25519 for messaging between nodes,
-hence the inclusion of Curve25519 public keys in genesis blocks.
+This uses the PyNaCL library for Ed25519 signatures and sha256 hashes. There are
+methods for ECDH and ephemeral ECDH using Curve25519 for messaging between nodes,
+hence the inclusion of Curve25519 public keys in genesis blocks. They are called
+simply `encrypt`, `decrypt`, `encrypt_sealed`, and `decrypt_sealed`.
 
 There are two reasons for using sha256 hashes instead of the sha512 signatures:
 1. When a block references another block on another block chain, it will be a total
@@ -42,6 +43,17 @@ in low-bandwidth networks for embedded devices, e.g. LoRa.
 2. It is easier on human eyes to use 256 bit hashes, and this scheme allows a
 theoretical maximum of 2^(256-difficulty) possible hashes per block chain/node,
 which is sufficient for any task.
+
+There are two PoW difficulty algorithms available:
+1. The classic preceding null bytes; and
+2. Repeating end digits, through which Kek, the Egyptian god/goddess
+pair representing the primordial chaos/darkness that led to creation, supposedly
+communicates with their followers on 4chan.
+
+They are mathematically identical given n difficulty: n null bytes restricts the
+set of valid hashes by (1/256)^n by restricting the first n digits to 1 value of
+the possible 256, while n+1 repeating digits takes the last digit and restricts
+the n preceding digits to be a copy of that digit, thus (1/256)^n.
 
 
 # Setup / Usage
@@ -88,10 +100,11 @@ Inherits from list and has these definitions:
 
 Returns BasicBlockChain with following instance attributes:
 - `difficulty`: 1
+- `difficulty_mode`: 0
 - `address`: empty byte string
 - `public_key`: empty byte string
 
-### @classmethod from_seed (seed)
+### @classmethod from_seed (seed, difficulty=1, difficulty_mode=0)
 
 Parameter:
 - `seed`: 32 bytes to seed the CSPRNG
@@ -106,8 +119,10 @@ Returns a BasicBlockChain with the following instance attributes:
 - `public_key`: `nacl.public.PublicKey`
 
 The SigningKey is derived from the seed, and all other values are derived from it.
+Default values for `difficulty` and `difficulty_mode` can be overridden; this is
+true for every class method that takes those parameters.
 
-### @classmethod from_chain (chain)
+### @classmethod from_chain (chain, difficulty=1, difficulty_mode=0)
 
 Parameter:
 - `chain`: list
@@ -117,14 +132,14 @@ Returns a BasicBlockChain with the contents of `chain` and the following instanc
 - `address`: byte string
 - `public_key`: `nacl.public.PublicKey`
 
-### @classmethod from_genesis_key (genesis_key)
+### @classmethod from_genesis_key (genesis_key, difficulty=1, difficulty_mode=0)
 
 Parameter:
 - `genesis_key`: `nacl.signing.SigningKey`
 
 Generates a seed and returns result of BasicBlockChain.from_seed with a genesis block and `genesis_address` attribute.
 
-### @classmethod from_genesis_block (genesis_block)
+### @classmethod from_genesis_block (genesis_block, difficulty=1, difficulty_mode=0)
 
 Parameter:
 - `genesis_block`: dict of form:
@@ -147,19 +162,20 @@ Parameter:
 
 Calls `create_block` and appends the result to `self`. Returns `None`.
 
-### @staticmethod meets_difficulty (signature, difficulty=1)
+### @staticmethod meets_difficulty (signature, difficulty=1, difficulty_mode=0)
 
 Parameters:
 - `signature`: byte string of result from `nacl.signing.SigningKey.sign()`
 - `difficulty=1`: int, minimum number of preceding zeroes in block hash
+- `difficulty_mode=0`: int, which of two difficulty algorithms to use
 
 Returns boolean:
-- `True` if the sha256 of the signature has difficulty number of preceding zeroes
+- `True` if the sha256 of the signature has difficulty number of preceding zeroes or difficulty+1 repeating end digits
 - `False` otherwise
 
-(For brevity, I will omit explanation of difficulty=1 hereinafter.)
+(For brevity, I will omit explanation of difficulty=1, difficulty_mode=0 hereinafter.)
 
-### @staticmethod create_block (signing_key, previous_block, body, difficulty=1)
+### @staticmethod create_block (signing_key, previous_block, body, difficulty=1, difficulty_mode=0)
 
 Parameters:
 - signing_key: `nacl.signing.SigningKey`
@@ -179,7 +195,7 @@ Returns dict of this form:
 }
 ```
 
-### @staticmethod create_genesis_block (genesis_key, node_address, public_key, difficulty=1)
+### @staticmethod create_genesis_block (genesis_key, node_address, public_key, difficulty=1, difficulty_mode=0)
 
 Parameters:
 - `genesis_key`: `nacl.signing.SigningKey`
@@ -199,7 +215,7 @@ Returns a dict of this form:
 }
 ```
 
-### @classmethod verify_block (block, difficulty=1)
+### @classmethod verify_block (block, difficulty=1, difficulty_mode=0)
 
 Parameters:
 - `block`: dict (see `create_block` above)
@@ -210,7 +226,7 @@ Returns a boolean:
 - `False` if the block is malformed/missing data
 - `True` if all checks are passed
 
-### @classmethod verify_genesis_block (block, genesis_address, difficulty=1)
+### @classmethod verify_genesis_block (block, genesis_address, difficulty=1, difficulty_mode=0)
 
 Parameters:
 - `block`: dict
@@ -223,7 +239,7 @@ Returns a boolean:
 - `False` if the block is malformed/missing data
 - `True` if all checks are passed
 
-### @classmethod verify_chain (blocks, genesis_address, difficulty=1)
+### @classmethod verify_chain (blocks, genesis_address, difficulty=1, difficulty_mode=0)
 
 Parameters:
 - `blocks`: list of dicts
@@ -406,7 +422,8 @@ Prints the chain in clean, human-readable format. Does not print instance attrib
 # To Do
 
 - Write new serializer that uses SQLite.
-- Update documentation for new difficulty algorithm that uses "dubs" (repeating digits a la 4chan).
+- Add X3DH (Extended Triple Diffie-Hellman): signal.org/docs/specifications/x3dh/
+- Add Double Ratchet for inter-node messaging: signal.org/docs/specifications/doubleratchet/
 
 # Copyright / ISC License
 
