@@ -99,23 +99,27 @@ except FileNotFoundError:
 if BasicBlockChain.verify_genesis_block(node1[0], genesis.address, difficulty, difficulty_mode):
     print('Node 1 genesis block verified.')
 else:
-    print('Node 1 genesis block failed verification.')
+    print('!!!Node 1 genesis block failed verification!!!')
+    SimpleSerializer.print_block(node1[0])
 
 if BasicBlockChain.verify_genesis_block(node2[0], genesis.address, difficulty, difficulty_mode):
     print('Node 2 genesis block verified.')
 else:
-    print('Node 2 genesis block failed verification.')
+    print('!!!Node 2 genesis block failed verification!!!')
+    SimpleSerializer.print_block(node2[0])
 
 # verify blockchains
 if BasicBlockChain.verify_chain(node1, genesis.address, difficulty, difficulty_mode):
     print('Node 1 block chain verified.')
 else:
-    print('Node 1 block chain failed verification.')
+    print('!!!Node 1 block chain failed verification!!!')
+    SimpleSerializer.print_block_chain(node1)
 
 if BasicBlockChain.verify_chain(node2, genesis.address, difficulty, difficulty_mode):
     print('Node 2 block chain verified.')
 else:
-    print('Node 2 block chain failed verification.')
+    print('!!!Node 2 block chain failed verification!!!')
+    SimpleSerializer.print_block_chain(node2)
 
 
 # write blockchains to file system
@@ -130,7 +134,7 @@ loaded1 = SimpleSerializer.load_block_chain('_chains', hexlify(node1.address))
 if BasicBlockChain.verify_chain(loaded1, genesis.address, difficulty, difficulty_mode):
     print('Verified block chain retrieved from file system.')
 else:
-    print('Failed to verify block chain retrieved from file system.')
+    print('!!!Failed to verify block chain retrieved from file system!!!')
 
 
 # hostile takeover
