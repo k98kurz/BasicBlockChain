@@ -24,6 +24,7 @@ from operator import itemgetter
 class BasicBlockChain(list):
     def __init__ (self):
         self.difficulty = 1
+        self.difficulty_mode = 0
         self.address = b''
         self.public_key = b''
 
@@ -35,8 +36,10 @@ class BasicBlockChain(list):
 
     # assuming we have the node's seed but not the genesis key
     @classmethod
-    def from_seed (cls, seed):
+    def from_seed (cls, seed, difficulty=1, difficulty_mode=0):
         blockchain = cls()
+        blockchain.difficulty = difficulty
+        blockchain.difficulty_mode = difficulty_mode
         blockchain.seed = seed
         blockchain.signing_key = SigningKey(seed)
         blockchain.verify_key = blockchain.signing_key.verify_key
@@ -47,8 +50,9 @@ class BasicBlockChain(list):
         return blockchain
 
     @classmethod
-    def from_chain (cls, chain):
+    def from_chain (cls, chain, difficulty_mode=0):
         blockchain = cls()
+        blockchain.difficulty_mode = difficulty_mode
         for i in range(0, len(chain)):
             blockchain.append(chain[i])
 
@@ -60,32 +64,43 @@ class BasicBlockChain(list):
 
     # assuming we have the genesis_key and are making a fresh node
     @classmethod
-    def from_genesis_key (cls, genesis_key):
+    def from_genesis_key (cls, genesis_key, difficulty=1, difficulty_mode=0):
         blockchain = cls.from_seed(PrivateKey.generate()._private_key)
-        blockchain.append(cls.create_genesis_block(genesis_key, blockchain.address, blockchain.public_key))
+        blockchain.difficulty = difficulty
+        blockchain.difficulty_mode = difficulty_mode
+        blockchain.append(cls.create_genesis_block(genesis_key, blockchain.address, blockchain.public_key, difficulty, difficulty_mode))
         blockchain.genesis_address = blockchain[0]['address']
         return blockchain
 
     # assuming we have the genesis block (dict) for a node and nothing else; e.g. for verification purposes
     @classmethod
-    def from_genesis_block (cls, genesis_block):
+    def from_genesis_block (cls, genesis_block, difficulty=1, difficulty_mode=0):
         blockchain = cls()
+        blockchain.difficulty = difficulty
+        blockchain.difficulty_mode = difficulty_mode
         blockchain.append(genesis_block)
         blockchain.public_key = genesis_block['public_key']
         blockchain.address = genesis_block['node_address']
         return blockchain
 
     def add_block (self, data):
-        new_block = self.create_block(self.signing_key, self[-1], data, self.difficulty)
+        new_block = self.create_block(self.signing_key, self[-1], data, self.difficulty, self.difficulty_mode)
         self.append(new_block)
 
     @staticmethod
-    # determines if the block hash has enough preceding null bytes
-    def meets_difficulty (signature, difficulty=1):
+    def meets_difficulty (signature, difficulty=1, mode=0):
         hash = sha256(signature, encoder=RawEncoder)
-        for i in range(0, difficulty):
-            if hash[i] > 0:
-                return False
+
+        if mode == 0:
+            # determines if the block hash has enough preceding null bytes
+            for i in range(0, difficulty):
+                if hash[i] > 0:
+                    return False
+        if mode == 1:
+            # determins if the block has enough repeating digits at end
+            for i in range(1, difficulty+1):
+                if hash[-i] != hash[-1-i]:
+                    return False
 
         return True
 
@@ -100,13 +115,13 @@ class BasicBlockChain(list):
         Parameters: signing_key SigningKey, previous_block dict, body bytes(*), difficulty int
     '''
     @staticmethod
-    def create_block (signing_key, previous_block, body, difficulty=1):
+    def create_block (signing_key, previous_block, body, difficulty=1, difficulty_mode=0):
         signing_key = SigningKey(signing_key) if type(signing_key) == type('s') or type(signing_key) == type(b's') else signing_key
         nonce = nacl.utils.random(16)
         signature = signing_key.sign(previous_block['hash'] + nonce + body)
 
         # mild PoW
-        while not BasicBlockChain.meets_difficulty(signature.signature, difficulty):
+        while not BasicBlockChain.meets_difficulty(signature.signature, difficulty, difficulty_mode):
             nonce = nacl.utils.random(16)
             signature = signing_key.sign(previous_block['hash'] + nonce + body)
 
@@ -134,14 +149,14 @@ class BasicBlockChain(list):
         Parameters: genesis_key SigningKey, node_address bytes(64), public_key bytes(32), difficulty int(0<x<5)
     '''
     @staticmethod
-    def create_genesis_block (genesis_key, node_address, public_key, difficulty=1):
+    def create_genesis_block (genesis_key, node_address, public_key, difficulty=1, difficulty_mode=0):
         nonce = nacl.utils.random(16)
         public_key = public_key._public_key if isinstance(public_key, nacl.public.PublicKey) else public_key
         signature = genesis_key.sign(node_address + nonce + public_key)
         difficulty = difficulty if difficulty < 5 and difficulty > 0 else 1
 
         # mild PoW
-        while not BasicBlockChain.meets_difficulty(signature.signature, difficulty):
+        while not BasicBlockChain.meets_difficulty(signature.signature, difficulty, difficulty_mode):
             nonce = nacl.utils.random(16)
             signature = genesis_key.sign(node_address + nonce + public_key)
 
@@ -160,10 +175,10 @@ class BasicBlockChain(list):
 
     # returns True or False
     @classmethod
-    def verify_block (cls, block, difficulty=1):
+    def verify_block (cls, block, difficulty=1, difficulty_mode=0):
         try:
             # reject if it does not meet the required difficulty
-            if not cls.meets_difficulty(block['signature'], difficulty):
+            if not cls.meets_difficulty(block['signature'], difficulty, difficulty_mode):
                 return False
             # then verify the signature
             verify_key = VerifyKey(block['address']) if type(block['address']) == type('s') or type(block['address']) == type(b's') else block['address']
@@ -176,13 +191,13 @@ class BasicBlockChain(list):
 
     # returns True or False
     @classmethod
-    def verify_genesis_block (cls, block, genesis_address, difficulty=1):
+    def verify_genesis_block (cls, block, genesis_address, difficulty=1, difficulty_mode=0):
         try:
             # reject if it is not signed by the genesis address
             if block['address'] != genesis_address:
                 return False
             # reject if it does not meet the required difficulty
-            if not cls.meets_difficulty(block['signature'], difficulty):
+            if not cls.meets_difficulty(block['signature'], difficulty, difficulty_mode):
                 return False
             # then verify the signature
             verify_key = VerifyKey(block['address']) if type(block['address']) == type('s') or type(block['address']) == type(b's') else block['address']
@@ -195,15 +210,15 @@ class BasicBlockChain(list):
 
     # returns True or False
     @classmethod
-    def verify_chain (cls, blockchain, genesis_address, difficulty=1):
+    def verify_chain (cls, blockchain, genesis_address, difficulty=1, difficulty_mode=0):
         # verify other blocks
         for i in range(0, len(blockchain)):
             # throw it out if its genesis block is invalid
-            if i == 0 and not cls.verify_genesis_block(blockchain[0], genesis_address):
+            if i == 0 and not cls.verify_genesis_block(blockchain[0], genesis_address, difficulty_mode):
                 return False
 
             # throw it out if any non-genesis block has a corrupt or fraudulent signature
-            if i > 0 and not cls.verify_block(blockchain[i], difficulty):
+            if i > 0 and not cls.verify_block(blockchain[i], difficulty, difficulty_mode):
                 return False
 
             # throw it out if the current block does not reference previous block

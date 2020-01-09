@@ -24,6 +24,11 @@ from binascii import hexlify
     CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 '''
 
+# choose difficulty and difficulty algorithm
+difficulty = 1
+# difficulty_mode = 0 # preceding null byte(s)
+difficulty_mode = 1 # ending repeating digits
+
 # set up directories
 if not os.path.isdir('_chains'):
     os.mkdir(os.path.join('.', '_chains'))
@@ -32,7 +37,7 @@ if not os.path.isdir('_seeds'):
 
 # get genesis seed from storage or create it
 if os.path.isfile('_seeds/genesis'):
-    genesis = BasicBlockChain.from_seed(open('_seeds/genesis', 'rb').read())
+    genesis = BasicBlockChain.from_seed(open('_seeds/genesis', 'rb').read(), difficulty, difficulty_mode)
     print('loaded _seeds/genesis from file')
 else:
     genesis = BasicBlockChain.from_seed(nacl.utils.random(32))
@@ -42,18 +47,18 @@ else:
 
 # create some nodes
 if os.path.isfile('_seeds/node1'):
-    node1 = BasicBlockChain.from_seed(open('_seeds/node1', 'rb').read())
+    node1 = BasicBlockChain.from_seed(open('_seeds/node1', 'rb').read(), difficulty, difficulty_mode)
     print('loaded _seeds/node1 from file')
 else:
-    node1 = BasicBlockChain.from_seed(nacl.utils.random(32))
+    node1 = BasicBlockChain.from_seed(nacl.utils.random(32), difficulty, difficulty_mode)
     open('_seeds/node1', 'wb').write(node1.seed)
     print('generated _seeds/node1 and wrote to file')
 
 if os.path.isfile('_seeds/node2'):
-    node2 = BasicBlockChain.from_seed(open('_seeds/node2', 'rb').read())
+    node2 = BasicBlockChain.from_seed(open('_seeds/node2', 'rb').read(), difficulty, difficulty_mode)
     print('loaded _seeds/node2 from file')
 else:
-    node2 = BasicBlockChain.from_seed(nacl.utils.random(32))
+    node2 = BasicBlockChain.from_seed(nacl.utils.random(32), difficulty, difficulty_mode)
     open('_seeds/node2', 'wb').write(node2.seed)
     print('generated _seeds/node2 and wrote to file')
 
@@ -65,7 +70,7 @@ try:
 # create blocks if nothing was found
 except FileNotFoundError:
     # create genesis block
-    node1.append( BasicBlockChain.create_genesis_block(genesis.signing_key, node1.address, node1.public_key) )
+    node1.append( BasicBlockChain.create_genesis_block(genesis.signing_key, node1.address, node1.public_key, difficulty, difficulty_mode) )
 
     # add a few blocks to each
     node1.add_block(b'Hail Julius Caesar or something.')
@@ -84,30 +89,30 @@ try:
 
 # create blocks if nothing was found
 except FileNotFoundError:
-    node2.append( BasicBlockChain.create_genesis_block(genesis.signing_key, node2.address, node2.public_key) )
+    node2.append( BasicBlockChain.create_genesis_block(genesis.signing_key, node2.address, node2.public_key, difficulty, difficulty_mode) )
     node2.add_block(b'Knives are cool tools of Roman politics.')
     node2.add_block(b'Caesar was the real traitor!')
     print('generated node2 blockchain')
 
 
 # verify genesis blocks
-if BasicBlockChain.verify_genesis_block(node1[0], genesis.address):
+if BasicBlockChain.verify_genesis_block(node1[0], genesis.address, difficulty, difficulty_mode):
     print('Node 1 genesis block verified.')
 else:
     print('Node 1 genesis block failed verification.')
 
-if BasicBlockChain.verify_genesis_block(node2[0], genesis.address):
+if BasicBlockChain.verify_genesis_block(node2[0], genesis.address, difficulty, difficulty_mode):
     print('Node 2 genesis block verified.')
 else:
     print('Node 2 genesis block failed verification.')
 
 # verify blockchains
-if BasicBlockChain.verify_chain(node1, genesis.address):
+if BasicBlockChain.verify_chain(node1, genesis.address, difficulty, difficulty_mode):
     print('Node 1 block chain verified.')
 else:
     print('Node 1 block chain failed verification.')
 
-if BasicBlockChain.verify_chain(node2, genesis.address):
+if BasicBlockChain.verify_chain(node2, genesis.address, difficulty, difficulty_mode):
     print('Node 2 block chain verified.')
 else:
     print('Node 2 block chain failed verification.')
@@ -122,17 +127,17 @@ SimpleSerializer.save_block_chain('_chains', hexlify(node2.address), node2)
 loaded1 = SimpleSerializer.load_block_chain('_chains', hexlify(node1.address))
 
 # verify
-if BasicBlockChain.verify_chain(loaded1, genesis.address):
+if BasicBlockChain.verify_chain(loaded1, genesis.address, difficulty, difficulty_mode):
     print('Verified block chain retrieved from file system.')
 else:
     print('Failed to verify block chain retrieved from file system.')
 
 
 # hostile takeover
-loaded1.append(BasicBlockChain.create_block(node2.signing_key, node1[1], b'Hostile takeover of node1 chain by node2.'))
+loaded1.append(BasicBlockChain.create_block(node2.signing_key, node1[1], b'Hostile takeover of node1 chain by node2.', difficulty, difficulty_mode))
 
 # verify
-if BasicBlockChain.verify_chain(loaded1, genesis.address):
+if BasicBlockChain.verify_chain(loaded1, genesis.address, difficulty, difficulty_mode):
     print('Hostile takeover of node1 chain by node2 not detected.')
 else:
     print('Node2 gtfo of node1\'s blockchain')
