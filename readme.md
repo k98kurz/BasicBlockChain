@@ -406,7 +406,7 @@ Prints the chain in clean, human-readable format. Does not print instance attrib
 # To Do
 
 - Write new serializer that uses SQLite.
-- Write new difficulty algorithm that uses "dubs" (repeating digits a la 4chan).
+- Update documentation for new difficulty algorithm that uses "dubs" (repeating digits a la 4chan).
 
 # Copyright / ISC License
 
