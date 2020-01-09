@@ -50,8 +50,9 @@ class BasicBlockChain(list):
         return blockchain
 
     @classmethod
-    def from_chain (cls, chain, difficulty_mode=0):
+    def from_chain (cls, chain, difficulty=1, difficulty_mode=0):
         blockchain = cls()
+        blockchain.difficulty = difficulty
         blockchain.difficulty_mode = difficulty_mode
         for i in range(0, len(chain)):
             blockchain.append(chain[i])
