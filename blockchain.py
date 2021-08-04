@@ -98,7 +98,7 @@ class BasicBlockChain(list):
                 if hash[i] > 0:
                     return False
         if difficulty_mode == 1:
-            # determins if the block has enough repeating digits at end
+            # determines if the block has enough repeating digits at end
             for i in range(1, difficulty+1):
                 if hash[-i] != hash[-1-i]:
                     return False
